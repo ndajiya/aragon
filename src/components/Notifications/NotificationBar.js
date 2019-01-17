@@ -1,46 +1,74 @@
 import React from 'react'
 import styled from 'styled-components'
 import { Spring, animated } from 'react-spring'
-import { Badge } from '@aragon/ui'
+import { theme, Badge } from '@aragon/ui'
 import { NotificationHub, Notification } from './NotificationHub'
 import springs from '../../springs'
 
-export default function NotificationBar({ open, notifications, onClearAll }) {
-  const count = notifications.length
-  return (
-    <Spring
-      native
-      from={{ x: -300 }}
-      to={{ x: open ? 0 : -300 }}
-      config={springs.lazy}
-    >
-      {props => (
-        <NotificationFrame
-          tabIndex={0}
-          /*ref={r => r && open && r.focus()}
-          onBlur={e => notificationOpen && this.handleNotificationPanelClose()}*/
-          style={{
-            transform: props.x.interpolate(x => `translate3d(${x}px,0,0)`),
-          }}
-        >
-          <NotificationHeader>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <h1 style={{ marginRight: 10 }}>Activity</h1>
-              {count ? (
-                <Badge.Notification>{count}</Badge.Notification>
-              ) : null}
-            </div>
-            <a href="#" onClick={onClearAll}>
-              Clear All
-            </a>
-          </NotificationHeader>
-          <NotificationHub items={notifications} keys={item => item.id}>
-            {NotificationImpl}
-          </NotificationHub>
-        </NotificationFrame>
-      )}
-    </Spring>
-  )
+export default class NotificationBar extends React.Component {
+  frameRef = React.createRef()
+  componentDidUpdate() {
+    this.frameRef.current[this.props.open ? 'focus' : 'blur']()
+  }
+  onBlur = e => {
+    const currentTarget = e.currentTarget
+    setTimeout(() => {
+      if (!currentTarget.contains(document.activeElement)) {
+        if (this.handler) clearTimeout(this.handler)
+        this.handler = setTimeout(
+          () => this.props.open && this.props.onBlur(),
+          200
+        )
+      }
+    }, 0)
+  }
+
+  render() {
+    const { open, notifications, onClearAll, onNotificationClosed } = this.props
+    const count = notifications.length
+    return (
+      <Spring
+        native
+        from={{ x: -300 }}
+        to={{ x: open ? 0 : -300 }}
+        config={springs.lazy}
+      >
+        {props => (
+          <NotificationFrame
+            ref={this.frameRef}
+            onBlur={this.onBlur}
+            tabIndex="0"
+            style={{
+              transform: props.x.interpolate(x => `translate3d(${x}px,0,0)`),
+            }}
+          >
+            <NotificationHeader>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <h1 style={{ marginRight: 10 }}>
+                  <Text>Activity</Text>
+                </h1>
+                {count ? (
+                  <Badge.Notification style={{ background: theme.accent }}>
+                    {count}
+                  </Badge.Notification>
+                ) : null}
+              </div>
+              <a href="#" onClick={onClearAll}>
+                <Text>Clear All</Text>
+              </a>
+            </NotificationHeader>
+            <NotificationHub
+              items={notifications}
+              keys={item => item.id}
+              onNotificationClosed={onNotificationClosed}
+            >
+              {NotificationImpl}
+            </NotificationHub>
+          </NotificationFrame>
+        )}
+      </Spring>
+    )
+  }
 }
 
 function NotificationImpl(item, ready) {
@@ -49,11 +77,7 @@ function NotificationImpl(item, ready) {
   switch (item.type) {
     case 'transaction':
       return (
-        <Notification.Transaction
-          ready={ready}
-          title={item.title}
-          time="10 min ago"
-        >
+        <Notification.Transaction ready={ready} title={item.title}>
           {payload}
         </Notification.Transaction>
       )
@@ -103,4 +127,8 @@ const NotificationHeader = styled('div')`
     color: #b3b3b3;
     text-align: right;
   }
+`
+
+const Text = styled('span')`
+  vertical-align: sub;
 `

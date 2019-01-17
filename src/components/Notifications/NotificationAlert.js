@@ -7,11 +7,14 @@ export default class NotificationAlert extends React.PureComponent {
   state = { opened: false, previousNotifications: 0 }
 
   static getDerivedStateFromProps(
-    { notifications },
+    { notificationOpen, notifications },
     { opened, previousNotifications }
   ) {
     return {
-      opened: notifications !== previousNotifications ? false : opened,
+      opened:
+        !notificationOpen && notifications !== previousNotifications
+          ? false
+          : opened,
       previousNotifications: notifications,
     }
   }
@@ -22,14 +25,13 @@ export default class NotificationAlert extends React.PureComponent {
   }
 
   render() {
-    const { notifications, onClick } = this.props
-    const show = !this.state.opened && notifications > 0
+    const show = !this.state.opened && this.props.notifications > 0
     return (
       <div className="actions">
         <IconButton
           style={{ height: 22 }}
           role="button"
-          tabindex={0}
+          tabIndex="0"
           onClick={this.handleClick}
         >
           <IconNotifications />
@@ -55,7 +57,7 @@ export default class NotificationAlert extends React.PureComponent {
                     .interpolate(s => `scale(${s})`),
                 }}
               >
-                {show && notifications}
+                {show && this.props.notifications}
               </Badge>
             )}
           </Spring>
@@ -67,6 +69,7 @@ export default class NotificationAlert extends React.PureComponent {
 
 const IconButton = styled.span`
   cursor: pointer;
+  outline: 0;
 `
 
 const Badge = styled(animated.div)`
@@ -74,7 +77,7 @@ const Badge = styled(animated.div)`
   font-weight: 600;
   white-space: nowrap;
   color: ${theme.badgeNotificationForeground};
-  background: ${theme.badgeNotificationBackground};
+  background: ${theme.accent};
   overflow: hidden;
   padding-top: 2px;
   letter-spacing: -0.5px;
